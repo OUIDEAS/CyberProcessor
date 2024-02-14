@@ -2,6 +2,7 @@ import json
 import os
 from datetime import datetime
 
+import re
 import datetime
 
 def dms_to_dd(d, m, s):
@@ -55,18 +56,20 @@ day = 14
 # print(epoch)
 
 
-directory = "./newComments"
-newDir    = "./reformattedComments/"
-
+directory = "/home/tmoleski_linux/s3bucket/Deployment_2_SEOhio/Blue Route/OU Pacifica/1674155613"
+newDir    = "/home/tmoleski_linux/s3bucket/Deployment_2_SEOhio/Blue Route/OU Pacifica/1674155613"
 for filename in os.listdir(directory):
     f = os.path.join(directory, filename)
-    print(f)
+    print(filename)
     masterDict ={
         'comments':[]
     }
-    if os.path.isfile(f):
+    if os.path.isfile(f) and f.endswith(".json") and re.match(r'[A-Za-z]', filename[0]):
         with open(f) as file:
+            print(f)
             old = json.load(file)
+
+            # print(f)
 
             for entry in old['comments']:
                 current_dict = {}
@@ -95,7 +98,7 @@ for filename in os.listdir(directory):
 
             # print(masterDict)
 
-    with open(newDir+filename, 'w') as fp:
-        print("CREATED NEW FILE: ", newDir+filename)
-        json.dump(masterDict, fp, indent=4)
+    # with open(newDir+filename, 'w') as fp:
+    #     print("CREATED NEW FILE: ", newDir+filename)
+    #     json.dump(masterDict, fp, indent=4)
 
