@@ -3,7 +3,6 @@ import os
 from datetime import datetime
 
 import re
-import datetime
 
 def dms_to_dd(d, m, s):
     if d[0]=='-':
@@ -35,36 +34,51 @@ def getLatLonComments(comment):
 
     if lon_dir == 'W':
         lon = lon * -1
-    # print(lat,lon) 
-        
-    
+
     alt = float(comment['data'][8])
 
     return lat, lon, alt
 
 def extractHMS(string):
-    hour   = int(string[:2])
-    minute = int(string[2:4])
-    second = int(string[4:6])
+    try:
+        hour   = int(string[:2]) - 5
+        minute = int(string[2:4])
+        second = int(string[4:6])
+    except:
+        hour = int(string[:2]) - 5
+        minute = int(string[3:5])
+        second = int(string[6:8])
+
+            
     return hour, minute, second
 
-year = 2023
-month = 9
-day = 14
+subdir = 1705954227
 
-# epoch = datetime.datetime(year, month, day, hour, minute, second).strftime('%s')
-# print(epoch)
+directory = "/media/travis/moleski2/cyber_bags/" + str(1705954227) + '/'
+newDir    = "/media/travis/moleski2/cyber_bags/" + str(1705954227) + '/'
 
+str_from_time = datetime.fromtimestamp(subdir)
 
-directory = "/home/tmoleski_linux/s3bucket/Deployment_2_SEOhio/Blue Route/OU Pacifica/1674155613"
-newDir    = "/home/tmoleski_linux/s3bucket/Deployment_2_SEOhio/Blue Route/OU Pacifica/1674155613"
+year = str_from_time.year
+month = str_from_time.month
+day = str_from_time.day
+
 for filename in os.listdir(directory):
     f = os.path.join(directory, filename)
-    print(filename)
+
+    if os.path.isfile(f) and f.endswith(".txt") and 'groupID' in filename:
+        of = open(f, "r")
+        content = of.read()
+        groupID = content
+
+for filename in os.listdir(directory):
+    f = os.path.join(directory, filename)
+
     masterDict ={
         'comments':[]
     }
     if os.path.isfile(f) and f.endswith(".json") and re.match(r'[A-Za-z]', filename[0]):
+    # if os.path.isfile(f) and f.endswith(".json")
         with open(f) as file:
             print(f)
             old = json.load(file)
@@ -77,12 +91,13 @@ for filename in os.listdir(directory):
                 event = entry['problem']
                 data = entry['data']
                 time = data[0]
+
                 h,m,s = extractHMS(time)
-                epoch_time = float(datetime.datetime(year,month,day,h,m,s).strftime('%s'))
+                epoch_time = float(datetime(year,month,day,h,m,s).strftime('%s'))
 
                 current_dict['timestampSec']  = epoch_time
                 current_dict['event'] = event
-                current_dict['groupID'] = 3
+                current_dict['groupID'] = groupID
 
                 lat, lon, alt = getLatLonComments(entry)
 
@@ -96,9 +111,9 @@ for filename in os.listdir(directory):
 
                 masterDict['comments'].append(current_dict)
 
-            # print(masterDict)
+            print(masterDict)
 
-    # with open(newDir+filename, 'w') as fp:
-    #     print("CREATED NEW FILE: ", newDir+filename)
-    #     json.dump(masterDict, fp, indent=4)
+        with open(newDir+filename, 'w') as fp:
+            print("CREATED NEW FILE: ", newDir+filename)
+            json.dump(masterDict, fp, indent=4)
 
