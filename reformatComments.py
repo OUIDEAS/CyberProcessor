@@ -2,6 +2,7 @@ import json
 import os
 from datetime import datetime
 
+from glob import glob
 import re
 
 def dms_to_dd(d, m, s):
@@ -39,81 +40,102 @@ def getLatLonComments(comment):
 
     return lat, lon, alt
 
-def extractHMS(string):
+def extractHMS(string, tz_offset):
     try:
-        hour   = int(string[:2]) - 5
+        hour   = int(string[:2]) - int(tz_offset.seconds/3600)
         minute = int(string[2:4])
         second = int(string[4:6])
     except:
-        hour = int(string[:2]) - 5
+        hour = int(string[:2]) - int(tz_offset.seconds/3600)
         minute = int(string[3:5])
         second = int(string[6:8])
 
             
     return hour, minute, second
 
-subdir = 1705954227
+def fast_scandir(dirname):
+    res = os.listdir(dirname)
+    return res
 
-directory = "/media/travis/moleski2/cyber_bags/" + str(1705954227) + '/'
-newDir    = "/media/travis/moleski2/cyber_bags/" + str(1705954227) + '/'
 
-str_from_time = datetime.fromtimestamp(subdir)
+ouPacifica = "/home/tmoleski_linux/s3bucket/Deployment_2_SEOhio/Blue Route/OU Pacifica/" 
+newDir    = "./commentCheck/"
 
-year = str_from_time.year
-month = str_from_time.month
-day = str_from_time.day
+subdirs = fast_scandir(ouPacifica)
+print(subdirs)
 
-for filename in os.listdir(directory):
-    f = os.path.join(directory, filename)
+for subdir in subdirs:
 
-    if os.path.isfile(f) and f.endswith(".txt") and 'groupID' in filename:
-        of = open(f, "r")
-        content = of.read()
-        groupID = content
+    subdir = int(subdir)
+    directory = ouPacifica + str(subdir) + '/'
 
-for filename in os.listdir(directory):
-    f = os.path.join(directory, filename)
+    str_from_time = datetime.utcfromtimestamp(subdir)
 
-    masterDict ={
-        'comments':[]
-    }
-    if os.path.isfile(f) and f.endswith(".json") and re.match(r'[A-Za-z]', filename[0]):
-    # if os.path.isfile(f) and f.endswith(".json")
-        with open(f) as file:
-            print(f)
-            old = json.load(file)
+    tz_offset = str_from_time - datetime.fromtimestamp(subdir)
 
-            # print(f)
+    print(directory, str_from_time, tz_offset)
 
-            for entry in old['comments']:
-                current_dict = {}
+    year = str_from_time.year
+    month = str_from_time.month
+    day = str_from_time.day
 
-                event = entry['problem']
-                data = entry['data']
-                time = data[0]
+    for filename in os.listdir(directory):
+        f = os.path.join(directory, filename)
 
-                h,m,s = extractHMS(time)
-                epoch_time = float(datetime(year,month,day,h,m,s).strftime('%s'))
+        if os.path.isfile(f) and f.endswith(".txt") and 'groupid' in filename:
+            of = open(f, "r")
+            content = of.read()
+            groupID = content
 
-                current_dict['timestampSec']  = epoch_time
-                current_dict['event'] = event
-                current_dict['groupID'] = groupID
+    for filename in os.listdir(directory):
+        f = os.path.join(directory, filename)
 
-                lat, lon, alt = getLatLonComments(entry)
+        masterDict ={
+            'comments':[]
+        }
+        # if os.path.isfile(f) and f.endswith(".json") and re.match(r'[A-Za-z]', filename[0]):
+        if os.path.isfile(f) and f.endswith(".json") and 'VanDrive_Comments' in filename:
+        # if os.path.isfile(f) and f.endswith(".json")
+            with open(f) as file:
+                print(f)
+                old = json.load(file)
 
-                LLH = {
-                    'latitude': lat,
-                    'longitude': lon,
-                    'alt_msl': alt
-                }
+                # print(f)
 
-                current_dict['gnssPosition'] = LLH
+                for entry in old['comments']:
+                    current_dict = {}
 
-                masterDict['comments'].append(current_dict)
+                    if 'problem' in entry:
+                        event = entry['problem']
+                    else:
+                        event = entry['comment']
 
-            print(masterDict)
 
-        with open(newDir+filename, 'w') as fp:
-            print("CREATED NEW FILE: ", newDir+filename)
-            json.dump(masterDict, fp, indent=4)
+                    data = entry['data']
+                    time = data[0]
+
+                    h,m,s = extractHMS(time, tz_offset)
+                    epoch_time = int(datetime(year,month,day,h,m,s).strftime('%s'))
+
+                    current_dict['timestampSec']  = epoch_time
+                    current_dict['event'] = event
+                    current_dict['groupID'] = groupID
+
+                    lat, lon, alt = getLatLonComments(entry)
+
+                    LLH = {
+                        'latitude': lat,
+                        'longitude': lon,
+                        'alt_msl': alt
+                    }
+
+                    current_dict['gnssPosition'] = LLH
+
+                    masterDict['comments'].append(current_dict)
+
+                print(masterDict)
+
+            with open(newDir+filename, 'w') as fp:
+                print("CREATED NEW FILE: ", newDir+filename)
+                json.dump(masterDict, fp, indent=4)
 
