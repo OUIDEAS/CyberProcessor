@@ -56,9 +56,10 @@ def fast_scandir(dirname):
     return res
 
 
-# ouPacifica = "/home/tmoleski_linux/s3bucket/Deployment_2_SEOhio/Blue Route/OU Pacifica/" 
-ouPacifica = "/media/travis/moleski2/cyber_bags/data/"
+ouPacifica = "/home/tmoleski_linux/s3bucket/Deployment_2_SEOhio/Blue Route/OU Pacifica/" 
+# ouPacifica = "/media/travis/moleski2/cyber_bags/data/"
 newDir    = "./commentCheck/"
+newDir    = ouPacifica
 
 subdirs = fast_scandir(ouPacifica)
 print(subdirs)
@@ -138,7 +139,8 @@ for subdir in subdirs:
 
                 print(masterDict)
 
-            with open(newDir+filename, 'w') as fp:
-                print("CREATED NEW FILE: ", newDir+filename)
+            save_dir = newDir + str(subdir) + "/comments.json"
+            with open(save_dir, 'w') as fp:
+                print("CREATED NEW FILE: ", save_dir)
                 json.dump(masterDict, fp, indent=4)
 
