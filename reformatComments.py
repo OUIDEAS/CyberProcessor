@@ -49,8 +49,6 @@ def extractHMS(string, tz_offset):
         hour = int(string[:2]) - int(tz_offset.seconds/3600)
         minute = int(string[3:5])
         second = int(string[6:8])
-
-            
     return hour, minute, second
 
 def fast_scandir(dirname):

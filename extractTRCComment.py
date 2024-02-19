@@ -7,7 +7,7 @@ from importlib import import_module
 # from traffic_light_pb2 import TrafficLightDetection, TrafficLightDebug, TrafficLight
 # from chassis_pb2 import Chassis
 import numpy as np
-import cv2
+# import cv2
 from PIL import Image
 import io
 import google.protobuf as protobuf
@@ -17,11 +17,11 @@ import apollopy.proto.proto_desc_pb2 as proto_desc_pb2
 from google.protobuf.json_format import MessageToJson
 # import apollopy.proto.localization_pb2 as localization_pb2# import Uncertainty, LocalizationEstimate, LocalizationStatus
 import json
-from tqdm import tqdm
+# from tqdm import tqdm
 from cybertools.cyberreaderlib import ProtobufFactory, RecordReader, RecordMessage
 import base64
 from datetime import datetime
-import utm
+# import utm
 # from sensor_image_pb2 import CompressedImage
 
 def initReader(filename):
@@ -44,7 +44,10 @@ if __name__ == "__main__":
     chassis_topic = "/apollo/canbus/chassis"
     comment_topic = "/apollo/drive_event"
 
-    direct = "/media/travis/moleski2/cyber_bags/TRC"
+    # direct = "/media/travis/moleski2/cyber_bags/TRC"
+
+    # direct = "/home/tmoleski_linux/s3bucket/Deployment_2_SEOhio/Blue Route/OU Pacifica/1694450559"
+    direct = "/home/tmoleski_linux/s3bucket/Deployment_2_SEOhio/Blue Route/TRCVan1/1704998893"
 
         # IMPORT FILE CHECK
     if direct.endswith("/"):
@@ -64,13 +67,13 @@ if __name__ == "__main__":
             
             # print(message)
             message_type = reader.GetMessageType(message.channel_name)
+            # print(message_type)
 
             if(message.channel_name == comment_topic):
                 print(message_type)
                 msg = pbfactory.GenerateMessageByType(message_type)
                 msg.ParseFromString(message.content)
 
-
                 json =  MessageToJson(msg)
-                # print(json)
+                print(json)
 
