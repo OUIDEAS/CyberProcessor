@@ -56,13 +56,15 @@ def fast_scandir(dirname):
     return res
 
 
-ouPacifica = "/home/tmoleski_linux/s3bucket/Deployment_2_SEOhio/Blue Route/OU Pacifica/" 
+# ouPacifica = "/home/tmoleski_linux/s3bucket/Deployment_2_SEOhio/Blue Route/OU Pacifica/" 
+ouPacifica = "/media/travis/moleski2/cyber_bags/data/"
 newDir    = "./commentCheck/"
 
 subdirs = fast_scandir(ouPacifica)
 print(subdirs)
 
 for subdir in subdirs:
+    print(subdir)
 
     subdir = int(subdir)
     directory = ouPacifica + str(subdir) + '/'
@@ -80,7 +82,7 @@ for subdir in subdirs:
     for filename in os.listdir(directory):
         f = os.path.join(directory, filename)
 
-        if os.path.isfile(f) and f.endswith(".txt") and 'groupid' in filename:
+        if os.path.isfile(f) and f.endswith(".txt") and 'groupid' or 'groupID' in filename:
             of = open(f, "r")
             content = of.read()
             groupID = content
@@ -101,7 +103,10 @@ for subdir in subdirs:
                 # print(f)
 
                 for entry in old['comments']:
-                    current_dict = {}
+                    current_dict = {"header": {},
+                                    "event": None,
+                                    "position": None,
+                                    }
 
                     if 'problem' in entry:
                         event = entry['problem']
@@ -115,7 +120,7 @@ for subdir in subdirs:
                     h,m,s = extractHMS(time, tz_offset)
                     epoch_time = int(datetime(year,month,day,h,m,s).strftime('%s'))
 
-                    current_dict['timestampSec']  = epoch_time
+                    current_dict['header']['timestampSec']  = epoch_time
                     current_dict['event'] = event
                     current_dict['groupID'] = groupID
 
@@ -127,7 +132,7 @@ for subdir in subdirs:
                         'alt_msl': alt
                     }
 
-                    current_dict['gnssPosition'] = LLH
+                    current_dict['position'] = LLH
 
                     masterDict['comments'].append(current_dict)
 
