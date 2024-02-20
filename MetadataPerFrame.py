@@ -88,11 +88,10 @@ def main(video_path, json_file, output_file):
     subprocess.run([
         'ffmpeg',
         '-y',
-        '-r', str(fps),  # Set the input image frame rate
-        '-i', os.path.join(temp_embedded_dir, 'frame_with_metadata_%d.png'),
+        '-framerate', str(fps),
+        '-i', os.path.join(temp_embedded_dir, f'frame_with_metadata_%d.png'),
         '-c:v', 'libx264',
         '-pix_fmt', 'yuv420p',
-        '-vf', f"metadata=file='{temp_data_dir}/metadata_%d.txt':key=frame_number",
         output_file
     ])
 
