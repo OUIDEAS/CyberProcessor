@@ -17,6 +17,7 @@ from tqdm import tqdm
 from cybertools.cyberreaderlib import ProtobufFactory, RecordReader, RecordMessage
 import base64
 from datetime import datetime
+import glob
 import utm
 
 ###########################################################
@@ -53,23 +54,6 @@ class VideoExporter:
 
 ###########################################################
 
-class GetMetadataToJson():
-    def __init__(self, export_dir):
-        print(export_dir)
-        self.filename = export_dir + "ExportedInfo.json"
-        print(self.filename)
-        self.frames = []
-
-    def createHeader(self, header_json):
-        self.frames = [header_json] + self.frames
-        pass
-
-    def export(self):
-        with open(self.filename, 'a') as json_file:
-            json.dump(self.frames, json_file, indent=4)
-            json_file.write('\n')
-
-###########################################################
 
 def initReader(filename):
     unqiue_channel = []
@@ -89,9 +73,9 @@ def initReader(filename):
 if __name__ == "__main__":
     ### OPTIONS ###
     # file_set = 1698251665
-    direct = "/mnt/f/blue_020224/"
+    direct = "/mnt/d/VanExperiment/blue_020224/"
 
-    export_dir = "/mnt/f/VideoTest/"
+    export_dir = "/mnt/d/VanExperiment/VideoTest/"
 
     print(export_dir)
 
@@ -116,7 +100,7 @@ if __name__ == "__main__":
     showVid = False
     
     # FILE CUTOFF
-    max_files_to_process = 1
+    max_files_to_process = 10
     early_break = False
     
     ### VAR INIT ###
@@ -134,127 +118,128 @@ if __name__ == "__main__":
     
     
     # JSON INIT
-    json_export = GetMetadataToJson(export_dir)
+    # json_export = GetMetadataToJson(export_dir)
     
     # COUNTERS
     file_count = 0
     frame_count = 0
     
     # ARRAYS
-    loc_data_to_metadata = {}
+    loc_data_to_metadata = {
+        'metadata': None,
+        'comments': None,
+        'frames': []
+        }
     
 
-    ### MAIN CODE ###
-    
-    for file in files:
-
-        # Get the file
-        filename = os.path.join(direct,file)
+### MAIN CODE ###
+for file in sorted(os.listdir(direct)):
+    filename = os.path.join(direct,file)
+    if file == 'comments.json':
         print(filename)
+        print("FOUND COMMENTS IN: ", filename)
+        comment_file = open(filename)
+        loc_data_to_metadata['comments'] = json.load(comment_file)['comments']
 
-        
-        if filename == 'comments.json':
-            print("FOUND METADATA IN: ", filename)
-            j_file = open(filename)
-            metadata = json.load(j_file)
-            json_export.createHeader(metadata)
-            continue
-
-        elif filename.endswith('.json'):
-            name, extension = os.path.splitext(file)
-            if extension == '.json' and name.isdigit():
-                print("FOUND METADATA IN: ", filename)
-                j_file = open(filename)
-                metadata = json.load(j_file)
-                json_export.createHeader(metadata)
-                continue
-        
-        else:
-
-            message, reader, pbfactory = initReader(filename)
+    elif file.endswith('.json') and 'comments.json' not in file:
+        name, extension = os.path.splitext(filename)
+        print("FOUND METADATA IN: ", filename)
+        j_file = open(filename)
+        loc_data_to_metadata['metadata'] = json.load(j_file)['metadata']
             
-            # print(message)
-            # print(type(message))
+print(loc_data_to_metadata)
+
+for file in files:
+
+    # Get the file
+    filename = os.path.join(direct,file)
+    print(filename)
+
+    if '.record' in filename:
+        message, reader, pbfactory = initReader(filename)
+        while reader.ReadMessage(message):
             
-            # Get meta data into arrays
-            while reader.ReadMessage(message):
+            message_type = reader.GetMessageType(message.channel_name)
+            msg = pbfactory.GenerateMessageByType(message_type)
+            msg.ParseFromString(message.content)
+            
+            if(message.channel_name == localization_topic): 
+
+                locdata = MessageToJson(msg)
+                locdata = json.loads(locdata)
+
                 
-                message_type = reader.GetMessageType(message.channel_name)
-                msg = pbfactory.GenerateMessageByType(message_type)
-                msg.ParseFromString(message.content)
+            if(message.channel_name == chassis_topic):
                 
-                if(message.channel_name == localization_topic): 
-    
-                    locdata = MessageToJson(msg)
-                    locdata = json.loads(locdata)
+                chasdata = MessageToJson(msg)
+                chasdata = json.loads(chasdata)
+                
+            if(message.channel_name == image_handler.camera_topic):
 
-                    
-                if(message.channel_name == chassis_topic):
-                    
-                    chasdata = MessageToJson(msg)
-                    chasdata = json.loads(chasdata)
-                    
-                if(message.channel_name == image_handler.camera_topic):
+                
+                imgdata = MessageToJson(msg)
+                imgdata = json.loads(imgdata)
+                
+                # Get the timestamp of the frame
+                img_ts = (imgdata['header']['timestampSec'])
 
-                    
-                    imgdata = MessageToJson(msg)
-                    imgdata = json.loads(imgdata)
-                    
-                    # Get the timestamp of the frame
-                    img_ts = (imgdata['header']['timestampSec'])
+                try:
 
-                    try:
+                    # Append data to a frame
+                    frame = {
+                        'localization': locdata,
+                        'chassis': chasdata
+                    }
+                    # Append to the json variable
+                    loc_data_to_metadata['frames'].append(frame)
+                    
+                    # print(json_export.getMatchedLocalizationMetaData(img_ts, localization_data.localization_data))
+                    # print(loc_data_to_metadata[frame_count])
 
-                        # Append data to a frame
-                        frame = {
-                            'localization': locdata,
-                            'chassis': chasdata
-                        }
-                        # Append to the json variable
-                        json_export.frames.append(frame)
+                    image_handler.image = imgdata['data']
+                    image_ts = image_handler.stringToImage()
+                    image_handler.toRGB()
+                    image_handler.add_frame()
+
+                    if showVid:
+
+                        lat,lon = utm.to_latlon(locdata['pose']['position']['x'], locdata['pose']['position']['y'], 17, 'S')
+
+                        lat = round(lat,5)
+                        lon = round(lon,5)
+
+                        driving_mode = chasdata['drivingMode']
+                        speed = round(chasdata['speedMps'] * 2.23694, 2)
+
+                        text = f'Frame: {frame_count}, Lat: {lat}, Lon: {lon}, Driving Mode: {driving_mode}, Speed (mph): {speed}'
+                        cv2.putText(image_handler.image, text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+                        cv2.imshow(message.channel_name, image_handler.image)
+                        cv2.waitKey(30)
                         
-                        # print(json_export.getMatchedLocalizationMetaData(img_ts, localization_data.localization_data))
-                        # print(loc_data_to_metadata[frame_count])
+                    frame_count += 1
 
-                        image_handler.image = imgdata['data']
-                        image_ts = image_handler.stringToImage()
-                        image_handler.toRGB()
-                        image_handler.add_frame()
+                except:
+                    continue
+    
 
-                        if showVid:
 
-                            lat,lon = utm.to_latlon(locdata['pose']['position']['x'], locdata['pose']['position']['y'], 17, 'S')
-
-                            lat = round(lat,5)
-                            lon = round(lon,5)
-
-                            driving_mode = chasdata['drivingMode']
-                            speed = round(chasdata['speedMps'] * 2.23694, 2)
-
-                            text = f'Frame: {frame_count}, Lat: {lat}, Lon: {lon}, Driving Mode: {driving_mode}, Speed (mph): {speed}'
-                            cv2.putText(image_handler.image, text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-                            cv2.imshow(message.channel_name, image_handler.image)
-                            cv2.waitKey(30)
-                            
-                        frame_count += 1
-
-                    except:
-                        continue
+        # Break Condition
+        file_count += 1
         
-
-
-            # Break Condition
-            file_count += 1
+        if early_break:
             
-            if early_break:
+            if file_count == max_files_to_process:
                 
-                if file_count == max_files_to_process:
-                    
-                    break
-            
-    image_handler.export_video()
-    json_export.export()
-    
-    
+                break
+        
+image_handler.export_video()
+print(loc_data_to_metadata)
 
-            # print("Message Count %d" % count)
+with open ('/mnt/d/VanExperiment/VideoTest/ExportedInfo.json', 'w') as f:
+    json.dump(loc_data_to_metadata,f,indent=4)
+
+# json_export.export()
+
+
+
+        # print("Message Count %d" % count)
