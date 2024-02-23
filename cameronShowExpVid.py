@@ -42,7 +42,9 @@ def main(video_path, json_file):
             break
 
         # Get metadata for the current frame
-        frame_metadata = metadata[frame_number+2]
+        frame_metadata = metadata[frame_number+1]
+        print(frame_count)
+        print(frame_number)
 
         # Extract values from metadata
         chassis = frame_metadata.get('chassis')
@@ -111,9 +113,9 @@ def main(video_path, json_file):
 
 if __name__ == "__main__":
     # Specify the path to the video file and the JSON file
-    video_path = "./CyberExport/ExportedInfo.avi"
-    met_file =   "./CyberExport/ExportedInfo.json"
-    output_video_file = "./OutputVid.mp4"
+    video_path = "/mnt/d/VanExperiment/VideoTest/ExportedInfo.avi"
+    met_file =   "/mnt/d/VanExperiment/VideoTest/ExportedInfo.json"
+    output_video_file = "/mnt/d/VanExperiment/VideoTest/OutputVid.mp4"
 
       # Run the main function
     main(video_path, met_file)

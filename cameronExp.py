@@ -89,9 +89,9 @@ def initReader(filename):
 if __name__ == "__main__":
     ### OPTIONS ###
     # file_set = 1698251665
-    direct = "/home/croback/CyberProcessor/Cyber/"
+    direct = "/mnt/f/blue_020224/"
 
-    export_dir = "/home/croback/CyberProcessor/CyberExport/"
+    export_dir = "/mnt/f/VideoTest/"
 
     print(export_dir)
 
@@ -153,12 +153,21 @@ if __name__ == "__main__":
         print(filename)
 
         
-        if filename.endswith('.json'):
+        if filename == 'comments.json':
             print("FOUND METADATA IN: ", filename)
             j_file = open(filename)
             metadata = json.load(j_file)
             json_export.createHeader(metadata)
             continue
+
+        elif filename.endswith('.json'):
+            name, extension = os.path.splitext(file)
+            if extension == '.json' and name.isdigit():
+                print("FOUND METADATA IN: ", filename)
+                j_file = open(filename)
+                metadata = json.load(j_file)
+                json_export.createHeader(metadata)
+                continue
         
         else:
 
