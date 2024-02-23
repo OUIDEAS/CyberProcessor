@@ -23,7 +23,7 @@ def main(video_path, json_file):
     frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = cap.get(cv2.CAP_PROP_FPS)
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # You can also use 'XVID' or other codecs depending on your preference
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')  # You can also use 'XVID' or other codecs depending on your preference
 
     # Initialize VideoWriter object
     out = cv2.VideoWriter(output_video_file, fourcc, fps, (frame_width, frame_height))
@@ -42,7 +42,7 @@ def main(video_path, json_file):
             break
 
         # Get metadata for the current frame
-        frame_metadata = metadata[frame_number+1]
+        frame_metadata = metadata['frames'][frame_number]
         print(frame_count)
         print(frame_number)
 
@@ -99,12 +99,7 @@ def main(video_path, json_file):
         cv2.putText(frame, text_line3, position_line3, cv2.FONT_HERSHEY_COMPLEX, font_scale, (0, 255, 255), 2)  # Yellow text
 
         out.write(frame)
-        # Show the frame
-        cv2.imshow('Video with Metadata', frame)
 
-        # Break the loop if the user presses 'q'
-        if cv2.waitKey(int(1000 / fps)) & 0xFF == ord('q'):
-            break
 
     # Release video capture object and close window
     cap.release()
@@ -115,7 +110,7 @@ if __name__ == "__main__":
     # Specify the path to the video file and the JSON file
     video_path = "/mnt/d/VanExperiment/VideoTest/ExportedInfo.avi"
     met_file =   "/mnt/d/VanExperiment/VideoTest/ExportedInfo.json"
-    output_video_file = "/mnt/d/VanExperiment/VideoTest/OutputVid.mp4"
+    output_video_file = "/mnt/d/VanExperiment/VideoTest/OutputVid.avi"
 
       # Run the main function
     main(video_path, met_file)
