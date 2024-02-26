@@ -50,11 +50,11 @@ def main(video_path, json_file):
         chassis = frame_metadata.get('chassis')
         loco = frame_metadata.get('localization')
 
-        van_time = f'{round(loco["header"]["timestampSec"], 3):.3f}'
+        van_time = f'{round(loco["header"]["timestampSec"], 3):.1f}'
 
         lat, lon = utm.to_latlon(loco['pose']['position']['x'], loco['pose']['position']['y'], 17, 'S')
-        lat = f'{lat:.3f}'
-        lon = f'{lon:.3f}'
+        lat = f'{lat:.4f}'
+        lon = f'{lon:.4f}'
         alt = f'{loco["pose"]["position"]["z"]:.3f}'
 
         driving_mode = chassis['drivingMode']
