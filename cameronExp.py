@@ -100,7 +100,7 @@ if __name__ == "__main__":
     showVid = False
     
     # FILE CUTOFF
-    max_files_to_process = 10
+    max_files_to_process = 1
     early_break = False
     
     ### VAR INIT ###
@@ -136,7 +136,6 @@ if __name__ == "__main__":
 for file in sorted(os.listdir(direct)):
     filename = os.path.join(direct,file)
     if file == 'comments.json':
-        print(filename)
         print("FOUND COMMENTS IN: ", filename)
         comment_file = open(filename)
         loc_data_to_metadata['comments'] = json.load(comment_file)['comments']
