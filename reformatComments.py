@@ -56,9 +56,9 @@ def fast_scandir(dirname):
     return res
 
 
-ouPacifica = "/home/tmoleski_linux/s3bucket/Deployment_2_SEOhio/Blue Route/OU Pacifica/" 
-# ouPacifica = "/media/travis/moleski2/cyber_bags/data/"
-newDir    = "./commentCheck/"
+# ouPacifica = "/home/tmoleski_linux/s3bucket/Deployment_2_SEOhio/Blue Route/OU Pacifica/" 
+ouPacifica = "/media/travis/moleski2/cyber_bags/data/"
+# newDir    = "./commentCheck/"
 newDir    = ouPacifica
 
 subdirs = fast_scandir(ouPacifica)
@@ -123,7 +123,7 @@ for subdir in subdirs:
 
                     current_dict['header']['timestampSec']  = epoch_time
                     current_dict['event'] = event
-                    current_dict['groupID'] = groupID
+                    current_dict['groupMetadataID'] = groupID
 
                     lat, lon, alt = getLatLonComments(entry)
 
