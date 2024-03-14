@@ -47,17 +47,19 @@ class Program
 
             string jsonFilePath = "json_out/" + words.Last() + ".json";
 
-                using (StreamWriter file = File.CreateText(jsonFilePath))
+            // Serialize all documents to JSON with original key names
+            var serializerSettings = new JsonSerializerSettings
+            {
+                ContractResolver = new DefaultContractResolver
                 {
-                    // Serialize each document individually to JSON with formatting and write to the file
-                    foreach (var document in documents)
-                    {
-                        string json = document.ToJson(new MongoDB.Bson.IO.JsonWriterSettings { Indent = true });
-                        file.WriteLine(json);
-                    }
-                }
+                    NamingStrategy = null // Prevent any name changes
+                },
+                Formatting = Formatting.Indented
+            };
+            var dotNetObjList = documents.ConvertAll(BsonTypeMapper.MapToDotNetValue);
 
-
+            string jsonContent = JsonConvert.SerializeObject(dotNetObjList, serializerSettings);
+            File.WriteAllText(jsonFilePath, jsonContent);
             Console.WriteLine($"Data dumped to '{jsonFilePath}'.");
         }
     }
