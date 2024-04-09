@@ -161,7 +161,8 @@ videos/
 *.avi
 *.mp4
 *.png
-
+*.pickle
+*.pckl
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
