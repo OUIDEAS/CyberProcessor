@@ -1,0 +1,1 @@
+python3 plot2bokeh.py --dataroot "./data/full_route_blue/" --html_root "./html_out/" --show
