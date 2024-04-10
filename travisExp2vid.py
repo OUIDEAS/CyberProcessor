@@ -113,8 +113,8 @@ def initReader(filename):
 if __name__ == "__main__":
     
     ### OPTIONS ###
-    file_set = 20230621150429
-    direct = "/media/travis/moleski1/forTony/" + str(file_set)
+    file_set = 1705954227
+    direct = "\\ideas-235//data//cyber//BlueRoute//" + str(file_set)
 
     # direct = "/home/travis/Work/Apollo/apollo5/apollo5.5/apollo-5.5.0/data/bag/trafficlight"
 
