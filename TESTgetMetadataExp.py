@@ -18,6 +18,7 @@ from datetime import datetime
 import glob
 import utm
 import math
+
  
 ###########################################################
 class VideoExporter:
@@ -27,11 +28,11 @@ class VideoExporter:
         self.fileset = str(fileset)
         self.camera_topic = camera_topic
         self.export_folder = ""
-        self.export_dimensions = (3840, 2160)
+        self.export_dimensions = (1920, 1080)
         self.image = None
         self.addMeta = True
-        self.fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        self.videoWriter = cv2.VideoWriter(export_dir + self.fileset + '_metadataVidMatched.mp4', self.fourcc, 14.0, self.export_dimensions)
+        self.fourcc = cv2.VideoWriter_fourcc(*"FFV1")
+        self.videoWriter = cv2.VideoWriter(export_dir + self.fileset + '_metadataVidMatched20FPS.avi', self.fourcc, 20.0, self.export_dimensions)
         if not self.videoWriter.isOpened():
             print("Error: Could not open VideoWriter")
  
@@ -77,7 +78,9 @@ def initReader(filename):
  
 if __name__ == "__main__":
     
-    file_set = sys.argv[1]
+    # file_set = sys.argv[1]
+
+    file_set="1694450559"
 
 
     ### OPTIONS ###
@@ -95,7 +98,7 @@ if __name__ == "__main__":
 
     direct = "/home/croback_linux/s3bucket/Deployment_2_SEOhio/Blue Route/OU Pacifica/" + str(file_set) + "/"
     # vid_export_dir = "/home/croback_linux/s3bucket/Deployment_2_SEOhio/Blue Route/OU Pacifica/" + str(file_set) + "/"
-    vid_export_dir = "/home/croback_linux/metadataOverlayData/" + str(file_set) + "in4K/"
+    vid_export_dir = "/home/croback_linux/metadataOverlayData/" + str(file_set) + "Lossless20FPS/"
 
     files_total = sorted(os.listdir(direct))
 
@@ -147,7 +150,7 @@ if __name__ == "__main__":
             print(f"Directory '{vid_export_dir}' already exists.")
 
         # TOPICS
-        image_handler = VideoExporter(camera_topic="/apollo/sensor/camera/front_6mm/image/compressed", export_dir=vid_export_dir, fileset=f)
+        image_handler = VideoExporter(camera_topic="/apollo/sensor/camera/front_6mm/image", export_dir=vid_export_dir, fileset=f)
 
         localization_topic = "/apollo/localization/pose"
         chassis_topic = "/apollo/canbus/chassis"
@@ -206,17 +209,22 @@ if __name__ == "__main__":
                         
                         imgdata = MessageToJson(msg)
                         imgdata = json.loads(imgdata)
+
+                        keylist = list(imgdata.keys())
+                        # print(keylist)
+
                         
                         # Get the timestamp of the frame
                         img_timestamp = (imgdata['header']['timestampSec'])
 
                         image_meta = {
                             'header': imgdata['header'],
-                            'format': imgdata['format'],
-                            'measurementTime':imgdata['measurementTime']
+                            # 'format': imgdata['format'],
+                            'measurementTime':imgdata['measurementTime'],
+                            'encoding':imgdata['encoding']
                         }
 
-
+                        print(imgdata['encoding'])
                         try:
 
                             loc_chas_separation = abs(locdata['header']['timestampSec'] - chasdata['header']['timestampSec'])
@@ -294,9 +302,9 @@ if __name__ == "__main__":
 
                                 frame_count += 1
 
-                                if frame_count % frame_interval == 0:
-                                    cv2.imwrite('/home/croback_linux/metadataOverlayData/' + str(file_set) + f'in4K/frame_{frame_count}.png', image_handler.image)  # Save frame as image
-                                    print('Frame image has been saved')
+                                # if frame_count % frame_interval == 0:
+                                #     cv2.imwrite('/home/croback_linux/metadataOverlayData/' + str(file_set) + f'/frame_{frame_count}.png', image_handler.image)  # Save frame as image
+                                #     print('Frame image has been saved')
                                 
                             else:
                                 if loc_img_separation > 1.0:
@@ -313,9 +321,6 @@ if __name__ == "__main__":
                         except ValueError as e:
                             print(e)
                             sys.exit(1)
-
-                        except:
-                            continue
                             
                             
 
