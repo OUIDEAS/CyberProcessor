@@ -32,23 +32,12 @@ class VideoExporter:
         self.image = None
         self.addMeta = True
         self.fourcc = cv2.VideoWriter_fourcc(*"FFV1")
-        self.videoWriter = cv2.VideoWriter(export_dir + self.fileset + '_metadataVidMatched20FPS.avi', self.fourcc, 20.0, self.export_dimensions)
+        self.videoWriter = cv2.VideoWriter(export_dir + self.fileset + '_metadataVidMatched.avi', self.fourcc, 15.0, self.export_dimensions)
         if not self.videoWriter.isOpened():
             print("Error: Could not open VideoWriter")
  
-    def stringToImage(self):
-        self.image = base64.b64decode(self.image)
-        self.image = Image.open(io.BytesIO(self.image))        
-        self.image_ts = 0
-        return self.image_ts
- 
-    def toRGB(self):
-        self.image = cv2.cvtColor(np.array(self.image), cv2.COLOR_BGR2RGB)
- 
     def add_frame(self):
-
         self.videoWriter.write(self.image)
-
  
     def export_video(self):
         self.videoWriter.release()
@@ -78,9 +67,8 @@ def initReader(filename):
  
 if __name__ == "__main__":
     
-    # file_set = sys.argv[1]
-
-    file_set="1694450559"
+    file_set = sys.argv[1]
+    # file_set="1694450559"
 
 
     ### OPTIONS ###
@@ -91,14 +79,10 @@ if __name__ == "__main__":
  
     print("Dirnames:", dirnames)
     print("Fileset:", file_set)
- 
-    # file_set = 1695931464
-
-
 
     direct = "/home/croback_linux/s3bucket/Deployment_2_SEOhio/Blue Route/OU Pacifica/" + str(file_set) + "/"
-    # vid_export_dir = "/home/croback_linux/s3bucket/Deployment_2_SEOhio/Blue Route/OU Pacifica/" + str(file_set) + "/"
-    vid_export_dir = "/home/croback_linux/metadataOverlayData/" + str(file_set) + "Lossless20FPS/"
+    vid_export_dir = "/home/croback_linux/s3bucket/Deployment_2_SEOhio/Blue Route/OU Pacifica/" + str(file_set) + "/"
+    # vid_export_dir = "/home/croback_linux/metadataOverlayData/" + str(file_set) + "/"
 
     files_total = sorted(os.listdir(direct))
 
@@ -136,12 +120,13 @@ if __name__ == "__main__":
 
     for f in unique_file_nums:
 
+        f = sys.argv[2]
         # f = '20240202155226'
 
         files = sorted(glob.glob(direct+"/" + f + ".record.*"))
 
         # print(files)
-        print(f)
+        print("Recording set:", f)
 
         if not os.path.exists(vid_export_dir):
             os.makedirs(vid_export_dir)
@@ -155,11 +140,6 @@ if __name__ == "__main__":
         localization_topic = "/apollo/localization/pose"
         chassis_topic = "/apollo/canbus/chassis"
         
-        # FILE LOCATION
-        # direct = "/mnt/h/cyber_bags/1698251665/"
-        # direct = "/media/travis/moleski1/cyber_bags/1698251665"
-        # direct = "/media/autobuntu/chonk/chonk/git_repos/apollo/10252023_blue_route/"
-        
         # FILE CUTOFF
         max_files_to_process = 2
         early_break = False
@@ -172,11 +152,14 @@ if __name__ == "__main__":
         else:
             direct = direct + "/"
             
-
         # COUNTERS
         file_count = 0
         frame_count = 0
         frame_interval = 500
+        prev_timestamp = 0
+        locdata = None
+        chasdata = None
+        imgdata = None
 
         for file in tqdm(files):
 
@@ -205,36 +188,32 @@ if __name__ == "__main__":
                         chas_timestamp = (chasdata['header']['timestampSec'])
                         
                     if(message.channel_name == image_handler.camera_topic):
-
-                        
+                       
                         imgdata = MessageToJson(msg)
                         imgdata = json.loads(imgdata)
 
-                        keylist = list(imgdata.keys())
-                        # print(keylist)
+                        # FPS Check
+                        # current_timestamp = imgdata['header']['timestampSec']
+                        # time_difference = current_timestamp - prev_timestamp
 
-                        
-                        # Get the timestamp of the frame
-                        img_timestamp = (imgdata['header']['timestampSec'])
+                        # # Calculate FPS based on the time difference
+                        # fps_check = 1 / time_difference
+                        # print("FPS:", fps_check)
+
+                        # prev_timestamp = current_timestamp
 
                         image_meta = {
                             'header': imgdata['header'],
-                            # 'format': imgdata['format'],
                             'measurementTime':imgdata['measurementTime'],
                             'encoding':imgdata['encoding']
                         }
 
-                        print(imgdata['encoding'])
-                        try:
+                        if locdata and chasdata and imgdata:
 
                             loc_chas_separation = abs(locdata['header']['timestampSec'] - chasdata['header']['timestampSec'])
                             loc_img_separation = abs(locdata['header']['timestampSec'] - imgdata['header']['timestampSec'])
 
                             if loc_img_separation <= 1.0 and loc_chas_separation <= 1.0:
-
-                                # print(f"Timestamp seperation between loc and chas is : {loc_chas_seperation}")
-                                # print(f"Timestamp seperation between loc and img is : {loc_img_seperation}")
-                                # print(f"Frame count: {frame_count}")
 
                                 # Append data to a frame
                                 frame = {
@@ -242,16 +221,13 @@ if __name__ == "__main__":
                                     'chassis': chasdata,
                                     'image_data': image_meta
                                 }
+                                
                                 # Append to the json variable
                                 loc_data_to_metadata['frames'].append(frame)
 
                                 image_handler.image = imgdata['data']
-                                image_ts = image_handler.stringToImage()
-                                image_handler.toRGB()
-                                image_handler.image = cv2.resize(image_handler.image, image_handler.export_dimensions)
-
-                                # print("Resized image dimensions:", image_handler.image.shape)
-
+                                image_handler.image = np.ndarray(shape=(msg.height, msg.width, 3), dtype='uint8', buffer=msg.data)                        
+                                image_handler.image = cv2.cvtColor(image_handler.image, cv2.COLOR_BGR2RGB)
 
                                 van_time = f'{round(locdata["header"]["timestampSec"], 3):.1f}'
 
@@ -259,10 +235,6 @@ if __name__ == "__main__":
                                 lat = f'{lat:.4f}'
                                 lon = f'{lon:.4f}'
                                 alt = f'{locdata["pose"]["position"]["z"]:.3f}'
-
-                                # print("Lat:",lat)
-                                # print("Lon",lon)
-                                # print("Alt",alt)
 
                                 driving_mode = chasdata['drivingMode']
                                 speed = f'{chasdata["speedMps"] * 2.23694:.2f}'
@@ -273,7 +245,6 @@ if __name__ == "__main__":
                                 text_line1 = 'OHIO UNIVERSITY IDEAS LAB'
                                 text_line2 = f'Frame: {frame_count},Timestamp: {van_time}, Lat: {lat}, Lon: {lon}, Alt (m): {alt}'    # NEED TO CHECK THE UNITS FOR HEADING AND ALTITUDE
                                 text_line3 = f'Speed (mph): {speed}, Heading(deg): {heading}, Driving Mode: {driving_mode}'
-
 
                                 position_line1 = (10, 40)
                                 font_scale = 1.25  
@@ -311,18 +282,14 @@ if __name__ == "__main__":
                                     print(f"Timestamp separation between image and loclization data too large in file : {file}")
                                     print('Separation:', loc_img_separation)
                                     print('Localization timestamp:', locdata['header']['timestampSec'])
-                                    raise ValueError("Exiting program...")
+                                    sys.exit(1)
                                 elif loc_chas_separation > 1.0:
                                     print(f"Timestamp seperation between chassis data and localization data too large in file : {file}")
                                     print('Separation:', loc_chas_separation)
                                     print('Localization timestamp:', locdata['header']['timestampSec'])
-                                    raise ValueError("Exiting program...")
-
-                        except ValueError as e:
-                            print(e)
-                            sys.exit(1)
-                            
-                            
+                                    sys.exit(1)
+                        else:
+                            continue
 
                 # Break Condition
                 file_count += 1
@@ -333,8 +300,6 @@ if __name__ == "__main__":
                         break
                 
         image_handler.export_video()
-                    
-        # print(loc_data_to_metadata)
 
         json_export_dir = "/home/croback_linux/metadataOverlayData/BlueRoute/" + str(file_set) + "/"
 
