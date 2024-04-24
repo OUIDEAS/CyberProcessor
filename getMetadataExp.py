@@ -16,7 +16,6 @@ from cybertools.cyberreaderlib import ProtobufFactory, RecordReader, RecordMessa
 import base64
 from datetime import datetime
 import glob
-from tqdm import tqdm
 import utm
  
 ###########################################################
@@ -25,14 +24,13 @@ class VideoExporter:
     def __init__(self, camera_topic, fileset, export_dir):
         # Topics
         self.fileset = str(fileset)
- 
         self.camera_topic = camera_topic
         self.export_folder = ""
         self.export_dimensions = (1920, 1080)
         self.image = None
         self.addMeta = True
         self.fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        self.videWriter = cv2.VideoWriter(export_dir + self.fileset + ".avi", self.fourcc, 20.0, self.export_dimensions)
+        self.videoWriter = cv2.VideoWriter(export_dir + self.fileset + ".avi", self.fourcc, 20.0, self.export_dimensions)
  
     def stringToImage(self):
         self.image = base64.b64decode(self.image)
@@ -45,10 +43,10 @@ class VideoExporter:
  
     def add_frame(self):
         img = cv2.resize(self.image, self.export_dimensions)
-        self.videWriter.write(img)
+        self.videoWriter.write(img)
  
     def export_video(self):
-        self.videWriter.release()
+        self.videoWriter.release()
         print('')
         print('VIDEO RELEASED')
         print('')
@@ -73,7 +71,7 @@ def initReader(filename):
  
 if __name__ == "__main__":
     ### OPTIONS ###
-    main_dir = "/home/croback_linux/s3bucket/Deployment_2_SEOhio/Blue Route/OU Pacifica/"
+    main_dir = "/home/croback_linux/s3bucket/Deployment_2_SEOhio/RedRoute/OU Pacifica/"
  
     for root, dirnames, filenames in os.walk(main_dir):
         break
@@ -83,12 +81,12 @@ if __name__ == "__main__":
     for file_set in dirnames:
  
         
-        # file_set = 1705951739
+        # file_set = 1698254838
         print(file_set)
         # sys.exit(1)
  
-        direct = "/home/croback_linux/s3bucket/Deployment_2_SEOhio/Blue Route/OU Pacifica/" + str(file_set) + "/"
-        export_dir = "/home/croback_linux/metadataOverlayData/BlueRoute/" + str(file_set) + "/"
+        direct = "/home/croback_linux/s3bucket/Deployment_2_SEOhio/RedRoute/OU Pacifica/" + str(file_set) + "/"
+        export_dir = "/home/croback_linux/metadataOverlayData/" + str(file_set) + "/"
  
         files_total = sorted(os.listdir(direct))
  
@@ -149,11 +147,11 @@ if __name__ == "__main__":
             # direct = "/media/autobuntu/chonk/chonk/git_repos/apollo/10252023_blue_route/"
  
             # VIDEO
-            showVid = False
+            showVid = True
             
             # FILE CUTOFF
-            max_files_to_process = 1
-            early_break = False
+            max_files_to_process = 2
+            early_break = True
             
             ### VAR INIT ###
  
@@ -189,12 +187,14 @@ if __name__ == "__main__":
  
                             locdata = MessageToJson(msg)
                             locdata = json.loads(locdata)
+                            loc_timestamp = (locdata['header']['timestampSec'])
  
                             
                         if(message.channel_name == chassis_topic):
                             
                             chasdata = MessageToJson(msg)
                             chasdata = json.loads(chasdata)
+                            chas_timestamp = (chasdata['header']['timestampSec'])
                             
                         if(message.channel_name == image_handler.camera_topic):
  
@@ -203,54 +203,69 @@ if __name__ == "__main__":
                             imgdata = json.loads(imgdata)
                             
                             # Get the timestamp of the frame
-                            img_ts = (imgdata['header']['timestampSec'])
+                            img_timestamp = (imgdata['header']['timestampSec'])
  
                             image_meta = {
                                 'header': imgdata['header'],
                                 'format': imgdata['format'],
                                 'measurementTime':imgdata['measurementTime']
                             }
- 
+
+
                             try:
- 
-                                # Append data to a frame
-                                frame = {
-                                    'localization': locdata,
-                                    'chassis': chasdata,
-                                    'image_data': image_meta
-                                }
-                                # Append to the json variable
-                                loc_data_to_metadata['frames'].append(frame)
-                                
-                                # print(json_export.getMatchedLocalizationMetaData(img_ts, localization_data.localization_data))
-                                # print(loc_data_to_metadata[frame_count])
- 
-                                image_handler.image = imgdata['data']
-                                image_ts = image_handler.stringToImage()
-                                image_handler.toRGB()
-                                image_handler.add_frame()
- 
-                                if showVid:
- 
-                                    lat,lon = utm.to_latlon(locdata['pose']['position']['x'], locdata['pose']['position']['y'], 17, 'S')
- 
-                                    lat = round(lat,5)
-                                    lon = round(lon,5)
- 
-                                    driving_mode = chasdata['drivingMode']
-                                    speed = round(chasdata['speedMps'] * 2.23694, 2)
- 
-                                    text = f'Frame: {frame_count}, Lat: {lat}, Lon: {lon}, Driving Mode: {driving_mode}, Speed (mph): {speed}'
-                                    cv2.putText(image_handler.image, text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-                                    cv2.imshow(message.channel_name, image_handler.image)
-                                    cv2.waitKey(30)
+
+                                loc_chas_seperation = abs(locdata['header']['timestampSec'] - chasdata['header']['timestampSec'])
+                                loc_img_seperation = abs(locdata['header']['timestampSec'] - imgdata['header']['timestampSec'])
+
+                                if loc_img_seperation <= 0.5 and loc_chas_seperation <= 0.5:
+
+                                    print(f"Timestamp seperation between loc and chas is : {loc_chas_seperation}")
+                                    print(f"Timestamp seperation between loc and img is : {loc_img_seperation}")
+
+                                    # Append data to a frame
+                                    frame = {
+                                        'localization': locdata,
+                                        'chassis': chasdata,
+                                        'image_data': image_meta
+                                    }
+                                    # Append to the json variable
+                                    loc_data_to_metadata['frames'].append(frame)
                                     
-                                frame_count += 1
- 
+                                    # print(json_export.getMatchedLocalizationMetaData(img_ts, localization_data.localization_data))
+                                    # print(loc_data_to_metadata[frame_count])
+
+                                    image_handler.image = imgdata['data']
+                                    image_ts = image_handler.stringToImage()
+                                    image_handler.toRGB()
+                                    image_handler.add_frame()
+
+                                    if showVid:
+
+                                        lat,lon = utm.to_latlon(locdata['pose']['position']['x'], locdata['pose']['position']['y'], 17, 'S')
+
+                                        lat = round(lat,5)
+                                        lon = round(lon,5)
+
+                                        driving_mode = chasdata['drivingMode']
+                                        speed = round(chasdata['speedMps'] * 2.23694, 2)
+
+                                        text = f'Frame: {frame_count}, Lat: {lat}, Lon: {lon}, Driving Mode: {driving_mode}, Speed (mph): {speed}'
+                                        cv2.putText(image_handler.image, text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+                                        cv2.imshow(message.channel_name, image_handler.image)
+                                        cv2.waitKey(30)
+                                        
+                                    frame_count += 1
+
+                                else:
+                                    if loc_img_seperation > 0.5:
+                                        print(f"Timestamp seperation between image and loclization data too large in file : {file}")
+                                        sys.exit(0)
+                                    elif loc_chas_seperation > 0.5:
+                                        print(f"Timestamp seperation between chassis data and localization data too large in file : {file}")
+                                        sys.exit(0)
+
                             except:
                                 continue
-                
- 
  
                     # Break Condition
                     file_count += 1
@@ -258,7 +273,6 @@ if __name__ == "__main__":
                     if early_break:
                         
                         if file_count == max_files_to_process:
-                            
                             break
                     
             image_handler.export_video()
@@ -269,6 +283,7 @@ if __name__ == "__main__":
                 json.dump(loc_data_to_metadata,f,indent=4)
  
             loc_data_to_metadata['frames'] = []
+            sys.exit(0)
     # json_export.export()
  
  
