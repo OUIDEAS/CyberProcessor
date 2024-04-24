@@ -72,7 +72,7 @@ if __name__ == "__main__":
 
 
     ### OPTIONS ###
-    main_dir = "/home/croback_linux/s3bucket/Deployment_2_SEOhio/Blue Route/OU Pacifica/"
+    main_dir = "/home/croback_linux/s3bucket/Deployment_2_SEOhio/RedRoute/OU Pacifica/"
  
     for root, dirnames, filenames in os.walk(main_dir):
         break
@@ -80,8 +80,8 @@ if __name__ == "__main__":
     print("Dirnames:", dirnames)
     print("Fileset:", file_set)
 
-    direct = "/home/croback_linux/s3bucket/Deployment_2_SEOhio/Blue Route/OU Pacifica/" + str(file_set) + "/"
-    vid_export_dir = "/home/croback_linux/s3bucket/Deployment_2_SEOhio/Blue Route/OU Pacifica/" + str(file_set) + "/"
+    direct = main_dir + str(file_set) + "/"
+    vid_export_dir = main_dir + str(file_set) + "/"
     # vid_export_dir = "/home/croback_linux/metadataOverlayData/" + str(file_set) + "/"
 
     files_total = sorted(os.listdir(direct))
@@ -301,7 +301,7 @@ if __name__ == "__main__":
                 
         image_handler.export_video()
 
-        json_export_dir = "/home/croback_linux/metadataOverlayData/BlueRoute/" + str(file_set) + "/"
+        json_export_dir = "/home/croback_linux/metadataOverlayData/RedRoute/" + str(file_set) + "/"
 
         if not os.path.exists(json_export_dir):
             os.makedirs(json_export_dir)
